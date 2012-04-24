@@ -1,6 +1,5 @@
 
-;(function(undefined){
-    
+;Z.$package(function(z, undefined){
 
     /**
      * 节点定义
@@ -35,10 +34,10 @@
         //,TODO appendChild, cloneNode, insertBefore, insertAfter, removeChild, replaceChild, 
         //normalize, contains
         //
-    }
+    };
 
-    function Element(){
-
+    function Element(tagName){
+        this.tagName = tagName;
     }
 
     Element.prototype = {
@@ -56,18 +55,6 @@
 
         },
         //============= 扩展的方法 ========================
-        /*getElementById: function(id){
-
-        },
-        getElementsByTagName: function(tagName){
-
-        },
-        getElementsByName: function(name){
-            
-        },
-        getElementsByClassName: function(className){
-
-        },*/
         /**
          * getAttribute和setAttribute的简写
          * @param  {String} key   
@@ -93,7 +80,7 @@
         }
     };
 
-    Util.extend(Element, Node);
+    z.extend(Element, Node);
 
     /**
      * 文档定义
@@ -104,9 +91,9 @@
 
     Document.prototype = {
             
-    }
+    };
     
-    Util.extend(Document, Element);
+    z.extend(Document, Element);
 
     function XMLParser(){
     
@@ -120,10 +107,63 @@
          */
         parse: function(xmlText){
             var doc = new Document();
+            var char, type, start, end, tmp, tag, currNode, attr, value;
+            for(var i = 0, l = xmlText.length; i < l; i++){
+                char = xmlText.charAt(i);
+                switch(char){
+                    case '<':
+                        type = 'tagStart';
+                        tmp = [];
+                        break;
+                    case '>':
+                        break;
+                    case '\/':
+                        break;
+                    case '=':
+                        if(type === 'tagAttrStart'){
+                            type = 'tagAttrValueStart';
+                            attr = tmp.join('');
+                            tmp = [];
+                        }
+                        break;
+                    case ' ':
+                        if(type === 'tagStart'){
+                            type = 'tagAttrStart';
+                            tag = tmp.join('');
+                            tmp = [];
+                            currNode = new Element(tag);
+                        }else if(type === 'tagAttrValueStart'){
+                            value = tmp.join('');
+                            currNode.attr(attr, value);
+                            tmp = [];
+                            type = ??;
+                        }
+                        break;
+                    case '"':
+                        break;
+                    case '-':
+                        break;
+                    case '!':
+                        break;
+                    case '?':
+                        break;
+                    default:
+                        if(type === 'tagStart'){
+                            tmp.push(char);
+                        }else if(type === 'tagAttrStart'){
+                            tmp.push(char);
+                        }else if(type === 'tagAttrValueStart'){
+                            tmp.push(char);
+                        }
+                        break;
+                }
+                
+            }
+
             return doc;
         }
-    }    
+    };
     
     window.XMLParser = XMLParser;
     
-})();
+});
