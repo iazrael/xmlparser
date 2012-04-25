@@ -107,6 +107,7 @@
          */
         parse: function(xmlText){
             var doc = new Document();
+            var root;
             var char, type, start, end, tmp, tag, currNode, attr, value;
             for(var i = 0, l = xmlText.length; i < l; i++){
                 char = xmlText.charAt(i);
@@ -116,6 +117,17 @@
                         tmp = [];
                         break;
                     case '>':
+                        if(type === 'tagStart'){
+                        //表示这个标签没有属性和空格
+                        //如 <html>
+                            type = 'tagEnd';
+                            tag = tmp.join('');
+                            tmp = [];
+                            currNode = new Element(tag);
+                            if(!root){
+                                
+                            }
+                        }
                         break;
                     case '\/':
                         break;

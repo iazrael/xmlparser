@@ -298,6 +298,11 @@
     };
 
     var toString = Object.prototype.toString;
+
+    this.is = function(type, obj) {
+        var clas = toString.call(obj).slice(8, -1);
+        return obj !== undefined && obj !== null && clas === type;
+    }
     
     this.isString = function(obj){
         return toString.call(obj) === '[object String]';
@@ -531,28 +536,26 @@
             var thisInit = prototype.init;//释放传入 prototype 变量的引用, 以便内存回收
             var superPrototype = z.duplicate(superClass.prototype);
             delete superPrototype.init;
-            newClass.prototype = z.merge({}, superClass.prototype, prototype);
-            var newPrototype = prototype;
+            var newPrototype = newClass.prototype = z.merge({}, superClass.prototype, prototype);
+            //处理被重写的方法, 提供在子类调用 this.$super(); 的方式调用
+            for(var prop in superPrototype){
+                if(z.isFunction(superPrototype[prop]) && z.isFunction(newPrototype[prop])){
+                    newPrototype[prop] = (function(superFn, subFn){
+                        return function(){
+                            var tmp = this.$super;
+                            this.$super = superFn;
+                            subFn.apply(this, arguments);
+                            this.$super = tmp;
+                        }
+                    })(superPrototype[prop], newPrototype[prop]);
+                }
+            }
             newClass.prototype.init = function(){
                 var argus = z.duplicate(arguments);
                 superInit.apply(this, argus);
                 this.$static = newClass;//提供更快速的访问类方法的途径
                 argus = z.duplicate(arguments);
                 thisInit.apply(this, argus);
-                //把父类被重写的方法赋给子类实例
-                var that = this;
-                this.$super = {};//TODO 这里有问题, 不能向上找父类的父类
-                //TODO 严重问题, A <- B <- C
-                //b调用了$super, c调用了$super的时候有死循环
-                for(var prop in superPrototype){
-                    if(z.isFunction(superPrototype[prop]) && newPrototype[prop]){//子类重写了的方法, 才覆盖
-                        this.$super[prop] = (function(prop){
-                            return function(){
-                                superPrototype[prop].apply(that, arguments);
-                            }
-                        })(prop);
-                    }
-                }
             }
         }else{
             var thisInit = prototype.init;
@@ -563,9 +566,10 @@
                 thisInit.apply(this, argus);
             }
         }
+        newClass.prototype.constructor = newClass;
         newClass.type = 'class';
         newClass.className = option.name || 'anonymous';
-        newClass.toString = _classToString;
+        // newClass.toString = _classToString;
 
         var impls = option['implements'];
         if(impls){
@@ -676,6 +680,7 @@
             bar: function(){
             }
         });
+
      *
      **/
     var define = function(type, option, prototype){
@@ -691,71 +696,6 @@
     this.define = define;
     this.$class = defineClass;
     this.$interface = defineInterface;
-    
-    /* //test code
-    var A = define('class', {
-        init: function(option){
-            console.log('A init');
-            console.log(arguments);
-        },
-        alertA: function(){
-            alert('A');
-        },
-        foo: function(){
-            console.log('a foo');
-        }
-    });
-    
-    var B = define('class', { extend: A , statics: {
-        kill: function(){
-            alert('kill B');
-        }
-        
-    }}, {
-        init: function(option){
-            console.log('B init');
-            option.b='c';
-        },
-        alertB: function(){
-            alert('B');
-        },
-        bar: function(){
-            console.log('b bar');
-        },
-        foo: function(){
-            console.log('b foo');
-        }
-    });
-    
-    var C = define('interface', [
-        'foo',
-        'bar'
-    ]);
-    
-    var D = define('class', { extend: B, 'implements': [ C ]}, {
-        init: function(){
-            console.log('D init');
-            console.log(arguments);
-        },
-        foo: function(){
-            console.log('foooooo');
-        },
-        bar: function(){
-        }
-    });
-    
-    // var a = new A();
-    // console.log(a);
-    // console.log(a.constructor);
-    
-    // var b = new B();
-    // console.log(b);
-    // console.log(b.constructor);
-//    console.log(B);
-    var d = new D({'a': 123});
-//    console.log(D);
-    console.log(d);
-    console.log(d.constructor); */
 });
 ;Z.$package('Z.cookie', function(z){
 
@@ -2402,6 +2342,9 @@ function testCase2(){
 });
 ;Z.$package('Z.util', function(z){
     
+    //防止 hasOwnProperty 被污染
+    var hasOwnProperty = Object.prototype.hasOwnProperty;
+
     /**
      * 计算对象的属性数量
      * @param  {Object} obj 
@@ -2413,7 +2356,7 @@ function testCase2(){
         }else{
             var n, count = 0;  
             for(n in obj){  
-                if(obj.hasOwnProperty(n)){  
+                if(hasOwnProperty.call(obj, n)){  
                     count++;  
                 }  
             }  
