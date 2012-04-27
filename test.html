@@ -5,7 +5,10 @@
     <title>Test</title>
 </head>
 <body>
-<textarea id="xmlText"></textarea>
+<textarea id="xmlText"><head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Test</title>
+</head></textarea>
 <button id="action">do parse</button>
 <script src="ztool.all.uncompressed.js"></script>
 <script src="xmlparser.js"></script>
@@ -15,7 +18,8 @@ Z.$package(function(z){
     var btn = z.dom.get('action');
     var xmlparser = new XMLParser();
     btn.onclick = function(){
-        xmlparser.parse(txt.value);
+        ret = xmlparser.parse(txt.value);
+        console.log(ret);
     }
 });
 </script>

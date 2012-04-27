@@ -14,11 +14,15 @@
     var emptyFunction = function(){};
     
     var isDebuging = 0;
-    
     var debug = isDebuging ? (window.console ? function(data){
         console.debug ? console.debug(data) : console.log(data);
     } : emptyFunction) : emptyFunction;
-       
+    
+    var anonymousCount = 0;
+    var getAnonymousPackageName = function(){
+        return LIBRARY_NAME + '.' + 'anonymous' + '.' + anonymousCount++;
+    }
+
     /**
      * @param {String} packageName
      */
@@ -168,8 +172,11 @@
         if(arguments.length === 3){
             requirePackages = arguments[1];
             constructor = arguments[2];
-        }else{
+        }else if(arguments.length === 2){
             constructor = arguments[1];
+        }else{
+            packageName = getAnonymousPackageName();
+            constructor = arguments[0];
         }
         var pack = buildPackage(packageName);
         if(pack.packageStatus === PACKAGE_STATUS.BUILDED){
@@ -418,6 +425,7 @@
         merge(child, parent);
         //继承 parent 的 prototype
         child.prototype = merge({}, parent.prototype, child.prototype);
+        child.prototype.constructor = child;
     }
 
     this.merge = merge;
@@ -554,8 +562,7 @@
                 var argus = z.duplicate(arguments);
                 superInit.apply(this, argus);
                 this.$static = newClass;//提供更快速的访问类方法的途径
-                argus = z.duplicate(arguments);
-                thisInit.apply(this, argus);
+                thisInit.apply(this, arguments);
             }
         }else{
             var thisInit = prototype.init;
@@ -848,6 +855,25 @@
      */
     this.get = function(id){
         return document.getElementById(id);
+    }
+
+    /**
+     * 简单的查找封装, 只支持一个选择符, 性能不高, 需要高性能的请使用jquery
+     * 改方法只是提供用于 简单页面, 不需要jquery的场景使用
+     * @param  {String} selector 选择器, 如 #id, .class, tag
+     * @return {NodeList}, {Node}
+     */
+    this.query = function(selector, parentNode){
+        parentNode = parentNode || document;
+        var s = selector.charAt(0);
+        var v = selector.substring(1);
+        if(s === '#'){
+            return this.get(v);
+        }else if(s === '.'){
+            return parentNode.querySelectorAll(selector);
+        }else{
+            return parentNode.getElementsByTagName(selector);
+        }
     }
     
     var templateList = {};
@@ -1959,6 +1985,11 @@
             }
             return false;
         },
+        /**
+         * 批量更新
+         * @param  {Array} items 
+         * @return {Object}, {Boolean}       
+         */
         updateRange: function(items){
             var updatedItems = [], newItem;
             for(var i in items){
@@ -2001,9 +2032,10 @@
          * @param  {Function} callback callback(item, index)
          * 
          */
-        each: function(callback){
+        each: function(callback, context){
+            context = context || this;
             for(var i = 0, item; item = this._arr[i]; i ++){
-                callback(item, i);
+                callback.call(context, item, i);
             }
         },
         /**
