@@ -149,8 +149,60 @@
     
     z.extend(Document, Element);
 
+    /**
+     * xml 文本解析引擎
+     */
+    function Interpreter(){
+
+    }
+
+    var FLAGS = {
+        '<': 1,
+        '>': 2,
+        '/': 4,
+        '?': 8,
+        '!': 16,
+        '"': 32,
+        '=': 64,
+        '-': 128,
+        ' ': 256
+    };
+
+    var SYMBOLS = {
+        ELEMENT_START: FLAGS['<'],
+        ELEMENT_START2: FLAGS['<'] + FLAGS['/'],
+        ELEMENT_END: FLAGS['/'] + FLAGS['>'],
+        ELEMENT_END2: FLAGS['>'],
+        COMMENT_START: FLAGS['<'] + FLAGS['-'] * 2,
+        COMMENT_END: FLAGS['>'] + FLAGS['-'] * 2,
+        META_START: FLAGS['<'] + FLAGS['?'],
+        META_END: FLAGS['>']
+    };
+
+    Interpreter.prototype = {
+        init: function(xmlText){
+            this.text = xmlText;
+            this.length = xmlText.length;
+            this.flag = 0;
+            this.fvalue = 0;
+            this.pos = -1;
+            this.lastPos = -1;
+        },
+        walk: function(){
+            var ch;
+            while(this.pos++ < this.length){
+                ch = this.text.charAt(this.pos);
+                this.flag = this.flag | FLAGS[ch];
+                this.fvalue += FLAGS[ch];
+            }
+            return null;
+        }
+    };
+
+
+
     function XMLParser(){
-    
+        this._interpreter = new Interpreter();
     }
     
     XMLParser.prototype = {
