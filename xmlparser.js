@@ -167,7 +167,7 @@
 // 　　</root>
     var TOKEN_TABLE = [
         '<', '<?' , '</', '<!', '<!--', '<![CDATA[',//可能需要回溯判断的 token 们
-        '>', '/>', '?>', '-->', ']]>', '=', '"', '\''
+        '>', '/>', '?>', '-->', ']]>', '=', '"', '\'', ' '
     ];
 
     var NOT_MATCH = 0;
@@ -196,6 +196,17 @@
         return count ? MATCH_ONE : NOT_MATCH;
     }
 
+    var EMPTY_CHAR_REGEXP = /\s/;
+
+    /**
+     * 判断是否是空白字符, 如空格,换行,缩进等
+     * @param  {String}  ch  
+     * @return {Boolean}    
+     */
+    function isEmptyChar (ch) {
+        return EMPTY_CHAR_REGEXP.test(ch);
+    }
+
     var NORMAL_MODE = 0;
     var TOKEN_MODE = 1;
     var ELEMENT_MODE = 2;
@@ -203,6 +214,7 @@
     var ID_MODE = 4;
     var COMMENT_MODE = 5;
     var DATA_MODE = 6;
+    var END_ID_MODE = 7;
 
     var MODE_TABLE = {
         '<': ELEMENT_MODE,
@@ -212,7 +224,9 @@
         '<!--': COMMENT_MODE, 
         '<![CDATA[': DATA_MODE, 
         '"': STRING_MODE, 
-        '\'': STRING_MODE
+        //TODO '\'': STRING_MODE,
+        ' ': ID_MODE,
+        '=': END_ID_MODE
     };
 
     Interpreter.prototype = {
@@ -231,6 +245,11 @@
             this.stack = [];
             while(this.pos < this.length){
                 ch = this.text.charAt(this.pos);
+                if((/*this.mode === NORMAL_MODE || */this.mode === ID_MODE) && isEmptyChar(ch)){
+                    //跳过无用的空白字符
+                    this.pos++;
+                    continue;
+                }
                 if(this.mode === TOKEN_MODE){
                     text = this.stack.join('') + ch;
                 }else{
@@ -241,13 +260,40 @@
                     //还不确定是哪一个,要继续吃下一个
                     this.mode = TOKEN_MODE;
                 }else if(m === MATCH_ONE){//TODO
-                    this.mode = MODE_TABLE[text] || NORMAL_MODE;
-                    token = this.stack.join('');
-                    // if(this.mode === ELEMENT_MODE){
-                    //     //如果 MATCH_ONE 的时候找到一个元素, pos 需要回退
-                    //     this.pos--;
-                    // }
-                    break;
+                    if(this.mode === NORMAL_MODE){
+                        token = text;
+                        this.pos++;
+                        break;
+                    }else if(this.mode === ELEMENT_MODE){
+                        token = this.stack.join('');
+                        this.mode = MODE_TABLE[text] || NORMAL_MODE;
+                        if(this.mode === ID_MODE){
+                            //这里开启了 id 的匹配模式, 说明这个是空格, 跳过
+                            this.pos++;
+                        }
+                        break;
+                    }else if(this.mode === ID_MODE){
+                        if(MODE_TABLE[text]){
+                            this.mode = MODE_TABLE[text];
+                        }
+                        if(this.mode === END_ID_MODE){//结束 id 匹配模式
+                            token = this.stack.join('');
+                            this.pos++;
+                            break;
+                        }
+                    }else if(this.mode === END_ID_MODE){
+                        this.mode = MODE_TABLE[text] || NORMAL_MODE;
+                        this.pos++;
+                        continue;
+                    }else if(this.mode === STRING_MODE){
+                        if(this.mode === MODE_TABLE[text]){
+                            //string 匹配模式结束
+                            token = this.stack.join('');
+                            this.pos++;
+                            this.mode = ID_MODE;
+                            break;
+                        }
+                    }
                 }else{// NOT_MATCH
                     if(this.mode === TOKEN_MODE){//因 TOKEN_MODE 导致的 NOT_MATCH 要回溯
                         token = this.stack.join('');
