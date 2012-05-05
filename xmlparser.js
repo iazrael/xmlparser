@@ -156,39 +156,6 @@
 
     }
 
-    /*var LEFT_BRACKET = 1;
-    var RIGHT_BRACKET = 2;
-    var SLASH = 4;
-    var GUESTION_MARK = 8;
-    var EXCLAMATION_MARK = 16;
-    var QUOTATION_MARK = 32;
-    var EQUAL_MARK = 64;
-    var HYPHEN = 128;
-    var SPACE = 256;
-
-    var FLAGS = {
-        '<': LEFT_BRACKET,
-        '>': RIGHT_BRACKET,
-        '/': SLASH,
-        '?': GUESTION_MARK,
-        '!': EXCLAMATION_MARK,
-        '"': QUOTATION_MARK,
-        '=': EQUAL_MARK,
-        '-': HYPHEN,
-        ' ': SPACE
-    };
-
-    var ELEMENT_START = FLAGS['<'];
-    var ELEMENT_END = FLAGS['/'] + FLAGS['>'];
-    var ELEMENT_START2 = FLAGS['<'] + FLAGS['/'];
-    var ELEMENT_END2 = FLAGS['>'];
-    var META_START = FLAGS['<'] + FLAGS['?'];
-    var META_END = FLAGS['>'] + FLAGS['?'];
-
-    var COMMENT_START = FLAGS['<'] + FLAGS['-'] * 2;//TODO
-    var COMMENT_END = FLAGS['>'] + FLAGS['-'] * 2;//TODO
-*/
-
 //     <?xml …?> /*XML说明*/
 // 　　<!DOCTYPE …> /*XML文档说明*/
 // 　　<!-- … --> /*XML注释*/
@@ -219,7 +186,7 @@
     function isMatchToken(text){
         var count = 0;
         for(var i = 0, t; t = TOKEN_TABLE[i]; i++){
-            if(text === t || t.indexOf(text) > -1){
+            if(t.indexOf(text) === 0){
                 count++;
             }
             if (count >= 2) {//已经有两个匹配了, 可以退出循环了
@@ -229,30 +196,72 @@
         return count ? MATCH_ONE : NOT_MATCH;
     }
 
+    var NORMAL_MODE = 0;
+    var TOKEN_MODE = 1;
+    var ELEMENT_MODE = 2;
+    var STRING_MODE = 3;
+    var ID_MODE = 4;
+    var COMMENT_MODE = 5;
+    var DATA_MODE = 6;
+
+    var MODE_TABLE = {
+        '<': ELEMENT_MODE,
+        '<?': ELEMENT_MODE, 
+        '</': ELEMENT_MODE, 
+        '<!': ELEMENT_MODE, 
+        '<!--': COMMENT_MODE, 
+        '<![CDATA[': DATA_MODE, 
+        '"': STRING_MODE, 
+        '\'': STRING_MODE
+    };
+
     Interpreter.prototype = {
         init: function(xmlText){
             this.text = xmlText;
             this.length = xmlText.length;
-            this.pos = -1;
+            this.pos = 0;
             this.lastPos = 0;
             this.stack = [];
+            this.mode = NORMAL_MODE;
         },
         nextToken: function(){
-            var ch, m;
-            while(this.pos++ < this.length){
+            var ch, m, 
+                text, 
+                token = null;
+            this.stack = [];
+            while(this.pos < this.length){
                 ch = this.text.charAt(this.pos);
-                m = isMatchToken(ch);
+                if(this.mode === TOKEN_MODE){
+                    text = this.stack.join('') + ch;
+                }else{
+                    text = ch;
+                }
+                m = isMatchToken(text);
                 if(m === MATCH_POLYSEMY){
                     //还不确定是哪一个,要继续吃下一个
-                }else if(m === MATCH_ONE){
-
+                    this.mode = TOKEN_MODE;
+                }else if(m === MATCH_ONE){//TODO
+                    this.mode = MODE_TABLE[text] || NORMAL_MODE;
+                    token = this.stack.join('');
+                    // if(this.mode === ELEMENT_MODE){
+                    //     //如果 MATCH_ONE 的时候找到一个元素, pos 需要回退
+                    //     this.pos--;
+                    // }
+                    break;
                 }else{// NOT_MATCH
-                    this.stack.push(ch);
-                    continue;
+                    if(this.mode === TOKEN_MODE){//因 TOKEN_MODE 导致的 NOT_MATCH 要回溯
+                        token = this.stack.join('');
+                        //根据是什么 token 切换到指定 mode
+                        this.mode = MODE_TABLE[token] || NORMAL_MODE;
+                        break;
+                    }else{
+                        //this.mode = STRING_MODE;
+                    }
                 }
-
+                this.stack.push(ch);
+                this.pos++;
             }
-            return null;
+            return token;
         }
     };
 
@@ -268,133 +277,14 @@
          * @param  {String} xmlText 
          * @return {Document}
          * @example 
-         * <head>
+         * 
+<head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>Test</title>
 </head>
          */
         parse: function(xmlText){
-            var root;
-            var char, type, start, end, tmp, tag, currNode, node, attr, value;
-            for(var i = 0, l = xmlText.length; i < l; i++){
-                char = xmlText.charAt(i);
-                switch(char){
-                    case '<':
-                        if(type === 'tagAttrValueStart'){
-                            tmp.push(char);
-                        }else if(type === 'tagEnd'){//遇到子节点了
-                            type = 'subTagStart';
-                            tmp = [];
-                        }else if(type === 'subTagStart'){//遇到文本节点
-                            type = 'subTagEnd';
-                            value = tmp.join('');
-                            node = new Text(value);
-                            currNode.appendChild(node);
-                            tmp = [];
-                        }else{
-                            type = 'tagStart';
-                            tmp = [];
-                        }
-                        break;
-                    case '>':
-                        if(type === 'tagStart'){
-                        //表示这个标签没有属性和空格
-                        //如 <html>
-                            type = 'tagEnd';
-                            tag = tmp.join('');
-                            tmp = [];
-                            node = new Element(tag);
-                            if(!root){
-                                root = node;
-                            }
-                            if(currNode){
-                                currNode.appendChild(node);
-                            }
-                            currNode = node;
-                        }else if(type === 'tagExpectEnd'){
-                            type = 'holdTagEnd';
-                            //结束一个标签
-                            currNode = currNode.parentNode;
-                        }
-                        break;
-                    case '\/':
-                        if(type === 'tagAttrValueStart'){
-                            tmp.push(char);
-                        }else if(type === 'tagAttrQuotEnd'){//这个标签的属性已经整完了
-                            type = 'tagExpectEnd';
-                        }else if(type === 'subTagEnd'){//子标签结束了
-                            type = 'tagExpectEnd';
-                        }else if(type === 'tagStart'){
-                            type = 'tagHasEnd';
-                        }
-                        break;
-                    case '=':
-                        if(type === 'tagAttrStart'){
-                            type = 'tagAttrQuotStart';
-                            attr = tmp.join('');
-                            tmp = [];
-                        }else if(type === 'tagAttrValueStart'){
-                            tmp.push(char);
-                        }
-                        break;
-                    case ' ':
-                        if(type === 'tagStart'){//遇到属性了
-                            type = 'tagAttrStart';
-                            tag = tmp.join('');
-                            tmp = [];
-                            node = new Element(tag);
-                            if(!root){
-                                root = node;
-                            }
-                            if(currNode){
-                                currNode.appendChild(node);
-                            }
-                            currNode = node;
-                        }else if(type === 'tagAttrQuotEnd'){//结束了一个属性
-                            type = 'tagAttrStart';
-                            tmp = [];
-                        }else if(type === 'tagAttrValueStart'){
-                            tmp.push(char);
-                        }else if(type === 'subTagStart'){
-                            tag = tmp.join('');
-                            tmp = [];
-                            node = new Element(tag);
-
-                            currNode.appendChild(node);
-                            currNode = node;
-                        }
-                        break;
-                    case '"':
-                        if(type === 'tagAttrQuotStart'){
-                            type = 'tagAttrValueStart';
-                        }else if(type === 'tagAttrValueStart'){
-                            type = 'tagAttrQuotEnd';
-                            value = tmp.join('');
-                            currNode.attr(attr, value);
-                        }
-                        break;
-                    case '!':
-                        break;
-                    case '?':
-                        break;
-                    default:
-                        if(type === 'tagStart'){
-                            tmp.push(char);
-                        }else if(type === 'tagAttrStart'){
-                            tmp.push(char);
-                        }else if(type === 'tagAttrValueStart'){
-                            tmp.push(char);
-                        }else if(type === 'tagEnd'){
-                            tmp.push(char);
-                        }else if(type === 'subTagStart'){
-                            tmp.push(char);
-                        }
-                        break;
-                }
-                
-            }
-
-            return root;
+            
         }
     };
     
