@@ -156,50 +156,107 @@
 
     }
 
+    /*var LEFT_BRACKET = 1;
+    var RIGHT_BRACKET = 2;
+    var SLASH = 4;
+    var GUESTION_MARK = 8;
+    var EXCLAMATION_MARK = 16;
+    var QUOTATION_MARK = 32;
+    var EQUAL_MARK = 64;
+    var HYPHEN = 128;
+    var SPACE = 256;
+
     var FLAGS = {
-        '<': 1,
-        '>': 2,
-        '/': 4,
-        '?': 8,
-        '!': 16,
-        '"': 32,
-        '=': 64,
-        '-': 128,
-        ' ': 256
+        '<': LEFT_BRACKET,
+        '>': RIGHT_BRACKET,
+        '/': SLASH,
+        '?': GUESTION_MARK,
+        '!': EXCLAMATION_MARK,
+        '"': QUOTATION_MARK,
+        '=': EQUAL_MARK,
+        '-': HYPHEN,
+        ' ': SPACE
     };
 
-    var SYMBOLS = {
-        ELEMENT_START: FLAGS['<'],
-        ELEMENT_START2: FLAGS['<'] + FLAGS['/'],
-        ELEMENT_END: FLAGS['/'] + FLAGS['>'],
-        ELEMENT_END2: FLAGS['>'],
-        COMMENT_START: FLAGS['<'] + FLAGS['-'] * 2,
-        COMMENT_END: FLAGS['>'] + FLAGS['-'] * 2,
-        META_START: FLAGS['<'] + FLAGS['?'],
-        META_END: FLAGS['>']
-    };
+    var ELEMENT_START = FLAGS['<'];
+    var ELEMENT_END = FLAGS['/'] + FLAGS['>'];
+    var ELEMENT_START2 = FLAGS['<'] + FLAGS['/'];
+    var ELEMENT_END2 = FLAGS['>'];
+    var META_START = FLAGS['<'] + FLAGS['?'];
+    var META_END = FLAGS['>'] + FLAGS['?'];
+
+    var COMMENT_START = FLAGS['<'] + FLAGS['-'] * 2;//TODO
+    var COMMENT_END = FLAGS['>'] + FLAGS['-'] * 2;//TODO
+*/
+
+//     <?xml …?> /*XML说明*/
+// 　　<!DOCTYPE …> /*XML文档说明*/
+// 　　<!-- … --> /*XML注释*/
+// 　　<?xml-stylesheet …?> /*XML指令*/
+// 　　<root> /*根数据元素*/
+// 　　<child>
+// 　　…<![CDATA[…]]>
+// 　　</child>
+// 　　</root>
+    var TOKEN_TABLE = [
+        '<', '<?' , '</', '<!', '<!--', '<![CDATA[',//可能需要回溯判断的 token 们
+        '>', '/>', '?>', '-->', ']]>', '=', '"', '\''
+    ];
+
+    var NOT_MATCH = 0;
+    var MATCH_ONE = 1;
+    var MATCH_POLYSEMY = 2;
+
+    /**
+     * 判断一个字符或字符串是否匹配到了一个 token
+     * 匹配情况分三种
+     * 1: 唯一完全匹配, 返回会 MATCH_ONE
+     * 2: 匹配了多个开头, 返回 MATCH_POLYSEMY
+     * 3: 未有匹配, 返回 NOT_MATCH
+     * @param  {String}  text 
+     * @return {Boolean}
+     */
+    function isMatchToken(text){
+        var count = 0;
+        for(var i = 0, t; t = TOKEN_TABLE[i]; i++){
+            if(text === t || t.indexOf(text) > -1){
+                count++;
+            }
+            if (count >= 2) {//已经有两个匹配了, 可以退出循环了
+                return MATCH_POLYSEMY;
+            }
+        }
+        return count ? MATCH_ONE : NOT_MATCH;
+    }
 
     Interpreter.prototype = {
         init: function(xmlText){
             this.text = xmlText;
             this.length = xmlText.length;
-            this.flag = 0;
-            this.fvalue = 0;
             this.pos = -1;
-            this.lastPos = -1;
+            this.lastPos = 0;
+            this.stack = [];
         },
-        walk: function(){
-            var ch;
+        nextToken: function(){
+            var ch, m;
             while(this.pos++ < this.length){
                 ch = this.text.charAt(this.pos);
-                this.flag = this.flag | FLAGS[ch];
-                this.fvalue += FLAGS[ch];
+                m = isMatchToken(ch);
+                if(m === MATCH_POLYSEMY){
+                    //还不确定是哪一个,要继续吃下一个
+                }else if(m === MATCH_ONE){
+
+                }else{// NOT_MATCH
+                    this.stack.push(ch);
+                    continue;
+                }
+
             }
             return null;
         }
     };
 
-
+    window.Interpreter = Interpreter;
 
     function XMLParser(){
         this._interpreter = new Interpreter();
