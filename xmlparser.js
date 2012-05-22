@@ -316,11 +316,15 @@
     function XMLParser(){
         this._interpreter = new Interpreter();
     }
-    
+
+    var SIGNIFICANT_WHITESPACE = {
+        "value": true
+    };
+
     XMLParser.prototype = {
         /**
          * 解析xml字符串的方法入口, 传入的xml字符串必须严格符合xml规范
-         * @param  {String} xmlText 
+         * @param  {String} token xmlText 
          * @return {Document}
          * @example 
          * 
@@ -329,11 +333,148 @@
     <title>Test</title>
 </head>
          */
-        parse: function(xmlText){
-            
+        parse: function(token){
+            /**
+             * before-element |
+             * element |
+             * before-name |
+             * name |
+             * before-value |
+             * value
+             */
+            var state = 'before-element',
+                index,
+                buffer = '',
+                name,
+                value,
+                elementName,
+                elementRegex = /[^<>&\/\\ ]+(?=(>|\/>| ))/g,
+                regexMatchs,
+                doc,
+                root,
+                currentNode,
+                node;
+            for(var character, i = 0; character = token.charAt(i); i++) {
+                switch (character) {
+
+                    case ' ':
+                    case '\t':
+                    case '\r':
+                    case '\n':
+                    case '\f':
+                        switch(state){
+                            case 'element':
+                                state = 'before-name';
+                                break;
+                        }
+                        // if(SIGNIFICANT_WHITESPACE[state]){
+                        //     buffer += character;
+                        // }
+                        break;
+                    //string 
+                    case '"':
+                        if(state === 'before-value'){
+                            index = token.indexOf('"', i + 1) ;
+                            if (index === -1) {
+                                throw '" is missing';
+                            }
+                            value = token.slice(i + 1, index );
+                            currentNode.setAttribute(name, value);
+                            i = index;
+                            state = 'element';
+                        }
+                        break;
+                    case "'":
+                        // index = token.indexOf("'", i + 1);
+                        // if (index === -1) {
+                        //     throw "' is missing";
+                        // }
+                        // buffer += token.slice(i, index + 1);
+                        // i = index;
+                        // switch (state) {
+                        //     case 'before-value':
+                        //         state = 'value';
+                        //         break;
+                        // }
+                        break;
+                    case '<':
+                        if(state === 'before-element'){
+                            if(token.indexOf('<!--', i) === i){// comment
+
+                            }else if(token.indexOf('<!', i) === i){// doctype
+
+                            }else if(token.indexOf('<![CDATA[', i) === i){// cdata
+
+                            }else if(token.indexOf('<?', i) === i){// xml declear
+
+                            }else if(token.indexOf('</', i) === i){// element close tag
+
+                            }else{//element
+                                elementRegex.lastIndex = i + 1;
+                                regexMatchs = elementRegex.exec(token);
+                                if(regexMatchs && regexMatchs.index === i + 1){
+                                    elementName = regexMatchs[0];
+                                    node = new Element(elementName);
+                                    if(currentNode){
+                                        currentNode.appendChild(node);
+                                    }
+                                    currentNode = node;
+                                    if(!root){
+                                        root = node;
+                                    }
+                                    i += elementName.length;
+                                    state = 'element';
+                                    buffer = '';
+                                }else{
+                                    throw new SyntaxError('unexpect <');
+                                }
+                            }
+                        }else {//end if state
+                            buffer += character;
+                        }
+                        break;
+                    // element half close
+                    case '>':
+                        if(state === 'element'){// element no really close 
+                            state = 'before-element';
+                        }else {//end if state
+                            buffer += character;
+                        }
+                        break;
+                    // element attr name end
+                    case '=':
+                        if(state === 'name'){
+                            name = buffer.trim();
+                            state = 'before-value';
+                            buffer = '';
+                        }
+                        break;
+                    case '/':
+                        if(state === 'before-name'){
+                            if(token.indexOf('/>', i) === i){// element really close
+                                state = 'before-element';
+                                i += 1;
+                            }else{
+                                throw new SyntaxError('unexpect /');
+                            }
+                        }
+                        break;
+                    default:
+                        switch(state){
+                            case 'before-name':
+                                state = 'name';
+                                break;
+                        }
+                        buffer += character;
+                }//end switch
+            }// end for
+            return root;
         }
     };
     
     window.XMLParser = XMLParser;
-    
+   
+
+
+
 });

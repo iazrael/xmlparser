@@ -20,9 +20,9 @@ Z.$package(function(z){
     var interpreter = new Interpreter();
     interpreter.init(txt.value);
     btn.onclick = function(){
-        // ret = xmlparser.parse(txt.value);
-        // console.log(ret);
-        console.log(interpreter.nextToken());
+        ret = xmlparser.parse(txt.value);
+        console.log(ret);
+        // console.log(interpreter.nextToken());
     }
 
 });
