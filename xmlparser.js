@@ -3,29 +3,18 @@
 
     /**
      * 节点定义
+     * @class
+     * @name Node
      */
-    function Node(){
-        
-    }
-
-    /*
-     * Node 类型常量定义
-     */
-    Node.ELEMENT_NODE = 1;
-    Node.ATTRIBUTE_NODE = 2;
-    Node.TEXT_NODE = 3;
-    Node.CDATA_SECTION_NODE = 4;
-    Node.COMMENT_NODE = 8;
-    Node.DOCUMENT_NODE = 9;
-    Node.DOCUMENT_TYPE_NODE = 10;
-
-    Node.prototype = {
-        nodeType: null,
-        nodeName: null,
-        nodeValue: null,
-        parentNode: null,
-        attributes: {},
-        childNodes: [],
+    var Node = z.$class({
+        init: function(){
+            this.nodeType = null;
+            this.nodeName = null;
+            this.nodeValue = null;
+            this.parentNode = null;
+            this.attributes = {};
+            this.childNodes = [];
+        },
         hasAttributes: function(){
             return !Util.isEmptyObject(this.attributes);
         },
@@ -47,19 +36,46 @@
         },
         cloneNode: function(){
             return z.duplicate(this);
-        }
+        },
         //,TODO  insertBefore, insertAfter, replaceChild, normalize
         //
-    };
+        toObject: function(){
 
-    function Element(tagName){
-        this.tagName = tagName;
-        this.nodeType = Node.ELEMENT_NODE;
-        this.nodeName = tagName;
-    }
+        },
+        toJSONString: function(){
+            var str = JSON.stringify(this.toObject());
+            return str;
+        },
+        toXMLString: function(){
 
-    Element.prototype = {
-        tagName: null,
+        },
+        toString: function(){
+            return this.toJSONString();
+        }
+    });
+
+    /*
+     * Node 类型常量定义
+     */
+    Node.ELEMENT_NODE = 1;
+    Node.ATTRIBUTE_NODE = 2;
+    Node.TEXT_NODE = 3;
+    Node.CDATA_SECTION_NODE = 4;
+    Node.COMMENT_NODE = 8;
+    Node.DOCUMENT_NODE = 9;
+    Node.DOCUMENT_TYPE_NODE = 10;
+
+
+    /**
+     * @class
+     * @name Element
+     */
+    var Element = z.$class({extend: Node }, {
+        init: function(tagName){
+            this.tagName = tagName;
+            this.nodeType = Node.ELEMENT_NODE;
+            this.nodeName = tagName;
+        },
         getAttribute: function(key){
             return this.attributes[key];
         },
@@ -118,36 +134,38 @@
             }else{//tag
                 return this.getElementsByTagName(selector);
             }
+        },
+        toObject: function(){
+
+        },
+        toXMLString: function(){
+
         }
-    };
+    });
 
-    z.extend(Element, Node);
-
-    function Text(value){
-        this.nodeValue = value;
-        this.nodeType = Node.TEXT_NODE;
-    }
-
-    Text.prototype = {
+    /**
+     * @class
+     * @name Text
+     */
+    var Text = z.$class({extend: Node}, {
+        init: function(value){
+            this.nodeValue = value;
+            this.nodeType = Node.TEXT_NODE;
+        },
         toString: function(){
             return this.nodeValue || '';
         }
-    };
-
-    z.extend(Text, Node);
+    });
 
     /**
      * 文档定义
+     * @class
+     * @name Document
      */
-    function Document(){
-
-    }
-
-    Document.prototype = {
+    var Document = z.$class({extend: Element}, {
             
-    };
+    });
     
-    z.extend(Document, Element);
 
     /**
      * xml 文本解析引擎
@@ -170,16 +188,25 @@
         '>', '/>', '?>', '-->', ']]>', '=', '"', '\'', ' '
     ];
 
-    var NOT_MATCH = 0;
-    var MATCH_ONE = 1;
+    var MATCH_NONE = 0;
+    var MATCH_EXACTLY = 1;
     var MATCH_POLYSEMY = 2;
+
+    /**
+     * 判读一个字符或字符串是否是token, 严格匹配
+     * @param  {String}  text 
+     * @return {Boolean}
+     */
+    function isToken(text){
+        return TOKEN_TABLE.indexOf(text) > -1;
+    }
 
     /**
      * 判断一个字符或字符串是否匹配到了一个 token
      * 匹配情况分三种
      * 1: 唯一完全匹配, 返回会 MATCH_ONE
      * 2: 匹配了多个开头, 返回 MATCH_POLYSEMY
-     * 3: 未有匹配, 返回 NOT_MATCH
+     * 3: 未有匹配, 返回 MATCH_NONE
      * @param  {String}  text 
      * @return {Boolean}
      */
@@ -190,10 +217,19 @@
                 count++;
             }
             if (count >= 2) {//已经有两个匹配了, 可以退出循环了
-                return MATCH_POLYSEMY;
+                break;
             }
         }
-        return count ? MATCH_ONE : NOT_MATCH;
+        if(count > 1){
+            return MATCH_POLYSEMY;
+        }
+        if(!count){//0
+            return MATCH_NONE;
+        }
+        if(isToken(text)){
+            return MATCH_EXACTLY;
+        }
+        return MATCH_POLYSEMY;
     }
 
     var EMPTY_CHAR_REGEXP = /\s/;
@@ -207,26 +243,26 @@
         return EMPTY_CHAR_REGEXP.test(ch);
     }
 
-    var NORMAL_MODE = 0;
-    var TOKEN_MODE = 1;
-    var ELEMENT_MODE = 2;
-    var STRING_MODE = 3;
-    var ID_MODE = 4;
-    var COMMENT_MODE = 5;
-    var DATA_MODE = 6;
-    var END_ID_MODE = 7;
+    var MODE_NORMAL = 'normal';
+    var MODE_TOKEN = 'token';
+    var MODE_ELEMENT = 'element';
+    var MODE_STRING = 'string';
+    var MODE_ID = 'id';
+    var MODE_COMMENT = 'comment';
+    var MODE_DATA = 'data';
+    var MODE_END_ID = 'end-id';
 
     var MODE_TABLE = {
-        '<': ELEMENT_MODE,
-        '<?': ELEMENT_MODE, 
-        '</': ELEMENT_MODE, 
-        '<!': ELEMENT_MODE, 
-        '<!--': COMMENT_MODE, 
-        '<![CDATA[': DATA_MODE, 
-        '"': STRING_MODE, 
-        //TODO '\'': STRING_MODE,
-        ' ': ID_MODE,
-        '=': END_ID_MODE
+        '<': MODE_ELEMENT,
+        '<?': MODE_ELEMENT, 
+        '</': MODE_ELEMENT, 
+        '<!': MODE_ELEMENT, 
+        '<!--': MODE_COMMENT, 
+        '<![CDATA[': MODE_DATA, 
+        '"': MODE_STRING, 
+        //TODO '\'': MODE_STRING,
+        ' ': MODE_ID,
+        '=': MODE_END_ID
     };
 
     Interpreter.prototype = {
@@ -236,7 +272,63 @@
             this.pos = 0;
             this.lastPos = 0;
             this.stack = [];
-            this.mode = NORMAL_MODE;
+            this.mode = MODE_NORMAL;
+        },
+        next: function(){
+            var ch, m, 
+                text, 
+                stack = [],
+                polysemy = false
+                ;
+            while(this.pos < this.length){
+                ch = this.text.charAt(this.pos);
+                if(polysemy){
+                    text = stack.join('') + ch;
+                }else{
+                    text = ch;
+                }
+                m = isMatchToken(text);
+                if(m === MATCH_POLYSEMY){
+                    if(!polysemy && stack.length){
+                        return stack.join('');
+                    }
+                    stack.push(ch);
+                    this.pos ++;
+                    polysemy = true;
+                }else if(m === MATCH_EXACTLY){
+                    if(polysemy){
+                        this.pos ++;
+                        return text;
+                    }
+                    if(stack.length){
+                        return stack.join('');
+                    }
+                    this.pos ++;
+                    return ch;
+                }else{
+                    if(polysemy){
+                        return stack.join('');
+                    }
+                    stack.push(ch);
+                    this.pos ++;
+                }
+            }
+            return null;
+        },
+        next2: function(){
+            var first = this.next();
+            if(isToken(first)){
+                return first;
+            }
+            var pos = this.pos;
+            var secend = this.next();
+            while(secend !== null && !isToken(secend)){
+                first += secend;
+                pos = this.pos;
+                secend = this.next();
+            }
+            this.pos = pos;
+            return first;
         },
         nextToken: function(){
             var ch, m, 
@@ -245,12 +337,12 @@
             this.stack = [];
             while(this.pos < this.length){
                 ch = this.text.charAt(this.pos);
-                if((/*this.mode === NORMAL_MODE || */this.mode === ID_MODE) && isEmptyChar(ch)){
+                if((/*this.mode === MODE_NORMAL || */this.mode === MODE_ID) && isEmptyChar(ch)){
                     //跳过无用的空白字符
                     this.pos++;
                     continue;
                 }
-                if(this.mode === TOKEN_MODE){
+                if(this.mode === MODE_TOKEN){
                     text = this.stack.join('') + ch;
                 }else{
                     text = ch;
@@ -258,50 +350,50 @@
                 m = isMatchToken(text);
                 if(m === MATCH_POLYSEMY){
                     //还不确定是哪一个,要继续吃下一个
-                    this.mode = TOKEN_MODE;
+                    this.mode = MODE_TOKEN;
                 }else if(m === MATCH_ONE){//TODO
-                    if(this.mode === NORMAL_MODE){
+                    if(this.mode === MODE_NORMAL){
                         token = text;
                         this.pos++;
                         break;
-                    }else if(this.mode === ELEMENT_MODE){
+                    }else if(this.mode === MODE_ELEMENT){
                         token = this.stack.join('');
-                        this.mode = MODE_TABLE[text] || NORMAL_MODE;
-                        if(this.mode === ID_MODE){
+                        this.mode = MODE_TABLE[text] || MODE_NORMAL;
+                        if(this.mode === MODE_ID){
                             //这里开启了 id 的匹配模式, 说明这个是空格, 跳过
                             this.pos++;
                         }
                         break;
-                    }else if(this.mode === ID_MODE){
+                    }else if(this.mode === MODE_ID){
                         if(MODE_TABLE[text]){
                             this.mode = MODE_TABLE[text];
                         }
-                        if(this.mode === END_ID_MODE){//结束 id 匹配模式
+                        if(this.mode === MODE_END_ID){//结束 id 匹配模式
                             token = this.stack.join('');
                             this.pos++;
                             break;
                         }
-                    }else if(this.mode === END_ID_MODE){
-                        this.mode = MODE_TABLE[text] || NORMAL_MODE;
+                    }else if(this.mode === MODE_END_ID){
+                        this.mode = MODE_TABLE[text] || MODE_NORMAL;
                         this.pos++;
                         continue;
-                    }else if(this.mode === STRING_MODE){
+                    }else if(this.mode === MODE_STRING){
                         if(this.mode === MODE_TABLE[text]){
                             //string 匹配模式结束
                             token = this.stack.join('');
                             this.pos++;
-                            this.mode = ID_MODE;
+                            this.mode = MODE_ID;
                             break;
                         }
                     }
-                }else{// NOT_MATCH
-                    if(this.mode === TOKEN_MODE){//因 TOKEN_MODE 导致的 NOT_MATCH 要回溯
+                }else{// MATCH_NONE
+                    if(this.mode === MODE_TOKEN){//因 MODE_TOKEN 导致的 MATCH_NONE 要回溯
                         token = this.stack.join('');
                         //根据是什么 token 切换到指定 mode
-                        this.mode = MODE_TABLE[token] || NORMAL_MODE;
+                        this.mode = MODE_TABLE[token] || MODE_NORMAL;
                         break;
                     }else{
-                        //this.mode = STRING_MODE;
+                        //this.mode = MODE_STRING;
                     }
                 }
                 this.stack.push(ch);
@@ -318,7 +410,7 @@
     }
 
     var SIGNIFICANT_WHITESPACE = {
-        "value": true
+        'before-element': true
     };
 
     XMLParser.prototype = {
@@ -345,8 +437,10 @@
             var state = 'before-element',
                 index,
                 buffer = '',
+                text,
                 name,
                 value,
+                temp,
                 elementName,
                 elementRegex = /[^<>&\/\\ ]+(?=(>|\/>| ))/g,
                 regexMatchs,
@@ -382,6 +476,8 @@
                             currentNode.setAttribute(name, value);
                             i = index;
                             state = 'element';
+                        }else{
+                            buffer += character;
                         }
                         break;
                     case "'":
@@ -399,7 +495,18 @@
                         break;
                     case '<':
                         if(state === 'before-element'){
+                            text = buffer.trim();
+                            if(text && currentNode){
+                                node = new Text(text);
+                                currentNode.appendChild(node);
+                                buffer = '';
+                            }
                             if(token.indexOf('<!--', i) === i){// comment
+                                index = token.indexOf('-->', i + 4);
+                                if(index === -1){
+                                    throw '--> is missing';
+                                }
+                                
 
                             }else if(token.indexOf('<!', i) === i){// doctype
 
@@ -407,8 +514,18 @@
 
                             }else if(token.indexOf('<?', i) === i){// xml declear
 
-                            }else if(token.indexOf('</', i) === i){// element close tag
-
+                            }else if(token.indexOf('</', i) === i){// element really close
+                                temp = '</' + elementName + '>';
+                                if(token.indexOf(temp, i) === i){
+                                    i += temp.length;
+                                    state = 'before-element';
+                                    currentNode = currentNode.parentNode;
+                                    if(currentNode){
+                                        elementName = currentNode.nodeName;
+                                    }
+                                }else{
+                                    throw new SyntaxError('unclose tag ' + elementName);
+                                }
                             }else{//element
                                 elementRegex.lastIndex = i + 1;
                                 regexMatchs = elementRegex.exec(token);
@@ -447,16 +564,24 @@
                             name = buffer.trim();
                             state = 'before-value';
                             buffer = '';
+                        }else{
+                            buffer += character;
                         }
                         break;
                     case '/':
                         if(state === 'before-name'){
                             if(token.indexOf('/>', i) === i){// element really close
                                 state = 'before-element';
+                                currentNode = currentNode.parentNode;
+                                if(currentNode){
+                                    elementName = currentNode.nodeName;
+                                }
                                 i += 1;
                             }else{
                                 throw new SyntaxError('unexpect /');
                             }
+                        }else{
+                            buffer += character;
                         }
                         break;
                     default:

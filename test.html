@@ -8,21 +8,27 @@
 <textarea id="xmlText" style="width: 520px; height: 60px;"><head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>Test</title>
+<!--<title>Test</title>-->
 </head></textarea>
 <button id="action">do parse</button>
+<div id="result"></div>
 <script src="ztool.all.uncompressed.js"></script>
 <script src="xmlparser.js"></script>
 <script>
 Z.$package(function(z){
     var txt = z.dom.get('xmlText');
     var btn = z.dom.get('action');
+    var result = z.dom.get('result');
     var xmlparser = new XMLParser();
     var interpreter = new Interpreter();
-    interpreter.init(txt.value);
     btn.onclick = function(){
-        ret = xmlparser.parse(txt.value);
-        console.log(ret);
-        // console.log(interpreter.nextToken());
+        // ret = xmlparser.parse(txt.value);
+        // console.log(ret);
+        interpreter.init(txt.value);
+        while((ret = interpreter.next2()) !== null){
+            console.log(ret);
+        }
+        // result.innerHTML += ret + '<hr/>';
     }
 
 });
