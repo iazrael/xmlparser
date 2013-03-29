@@ -6,7 +6,7 @@
 </head>
 <body>
 <textarea id="xmlText" style="width: 520px; height: 60px;">
-    <?xml http="aaa"?> <!DOCTYPE html> <head>
+    <?xml version="1.0"?> <!DOCTYPE html> <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>Test</title>
 </head>
@@ -22,9 +22,8 @@
 <script src="xmlparser.js"></script>
 <script>
 Z.$package(function(z){
-    var txt = z.dom.get('xmlText');
-    var btn = z.dom.get('action');
-    var result = z.dom.get('result');
+    var txt = document.getElementById('xmlText');
+    var btn = document.getElementById('action');
     var xmlparser = new imatlas.XMLParser();
     
     btn.onclick = function(){

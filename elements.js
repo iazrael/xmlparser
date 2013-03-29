@@ -32,7 +32,7 @@
             node.parentNode = null;
         },
         contains: function(node){
-            return z.array.contains(this.childNodes, node);
+            return this.childNodes.indexOf(node) > -1;
         },
         cloneNode: function(){
             return z.duplicate(this);
