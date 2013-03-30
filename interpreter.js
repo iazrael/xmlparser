@@ -1,5 +1,5 @@
 
-;Z.$package('imatlas', function(z, undefined){
+;Z.$package('Z.parser', function(z, undefined){
 
     var MATCH_NONE = 0;//没有匹配
     var MATCH_EXACTLY = 1;//完全匹配了一个

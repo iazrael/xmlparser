@@ -1,5 +1,5 @@
 
-;Z.$package('imatlas', function(z, undefined){
+;Z.$package('Z.parser', function(z, undefined){
 
     /**
      * 节点定义
@@ -60,15 +60,16 @@
             return obj;
         },
         toJSONString: function(){
-            
             var str = JSON.stringify(this.toObject());
             return str;
         },
-        toXMLString: function(){
-
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) + '<' + this.nodeName + '>' + this.nodeValue + '</' + this.nodeName + '>';
+            return str;
         },
         toString: function(){
-            return this.toJSONString();
+            return this.toXMLString();
         }
     });
 
@@ -94,6 +95,25 @@
             this.tagName = tagName;
             this.nodeType = Node.ELEMENT_NODE;
             this.nodeName = tagName;
+        },
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) + '<' + this.nodeName;
+            for(var i in this.attributes){
+                if(this.attributes.hasOwnProperty(i)){
+                    str += ' ' + i + '="' + this.attributes[i] + '"';
+                }
+            }
+            if(this.childNodes.length){
+                str += '>' + '\n';
+                for(var j in this.childNodes){
+                    str += this.childNodes[j].toXMLString(tabCount + 1) + '\n';
+                }
+                str += generateString('\t', tabCount) + '</' + this.nodeName + '>';
+            }else{
+                str += '/>';
+            }
+            return str;
         },
         getAttribute: function(key){
             return this.attributes[key];
@@ -171,6 +191,11 @@
                 nodeValue: this.nodeValue
             };
             return obj;
+        },
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) + this.nodeValue;
+            return str;
         }
     });
 
@@ -189,6 +214,12 @@
                 nodeValue: this.nodeValue
             };
             return obj;
+        },
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) 
+                + '<!--' + this.nodeValue + '-->';
+            return str;
         }
     });
 
@@ -207,6 +238,12 @@
                 nodeValue: this.nodeValue
             };
             return obj;
+        },
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) 
+                + '<![CDATA[' + this.nodeValue + ']]>';
+            return str;
         }
     });
 
@@ -219,7 +256,22 @@
         init: function(){
             this.nodeName = 'document';
             this.nodeType = Node.DOCUMENT_NODE;
-            delete this.tagName;
+        },
+        toObject: function(){
+            var obj = {
+                nodeName: this.nodeName,
+                nodeValue: this.nodeValue
+            };
+            return obj;
+        },
+        toXMLString: function(){
+            var str = '';
+            if(this.childNodes.length){
+                for(var j in this.childNodes){
+                    str += this.childNodes[j].toXMLString() + '\n';
+                }
+            }
+            return str;
         }
     });
 
@@ -235,6 +287,12 @@
                 nodeValue: this.nodeValue
             };
             return obj;
+        },
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) 
+                + '<!' + this.nodeName + ' ' + this.nodeValue + '>';
+            return str;
         }
     });
 
@@ -255,9 +313,28 @@
                 nodeValue: this.nodeValue
             };
             return obj;
+        },
+        toXMLString: function(tabCount){
+            tabCount = tabCount || 0;
+            var str = generateString('\t', tabCount) 
+                + '<?' + this.nodeName;
+            // for(var i in this.attributes){
+            //     if(this.attributes.hasOwnProperty(i)){
+            //         str += ' ' + i + '="' + this.attributes[i] + '"';
+            //     }
+            // }
+            str += ' ' + this.nodeValue;
+            str += '?>';
+            return str;
         }
     });
     
-
+    var generateString = function(ch, count){
+        var result = '';
+        for (var i = 0; i < count; i++) {
+            result += ch;
+        };
+        return result;
+    }
 
 });

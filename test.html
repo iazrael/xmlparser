@@ -14,7 +14,7 @@
     <title>Test</title>-->
 </textarea> 
 
-<button id="action">do parse
+<button id="action">do parse</button>
 <div id="result"></div>
 <script src="ztool.mini.js"></script>
 <script src="interpreter.js"></script>
@@ -24,11 +24,11 @@
 Z.$package(function(z){
     var txt = document.getElementById('xmlText');
     var btn = document.getElementById('action');
-    var xmlparser = new imatlas.XMLParser();
+    var xmlparser = new z.parser.XMLParser();
     
     btn.onclick = function(){
         ret = xmlparser.parse(txt.value);
-        console.dir(ret.toObject());
+        console.log(ret.toXMLString());
      }
 
 });

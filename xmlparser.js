@@ -1,5 +1,5 @@
 
-;Z.$package('imatlas', function(z, undefined){
+;Z.$package('Z.parser', function(z, undefined){
 
     var TOKEN_TABLE = [
         '<', '<?' , '</', '<!', '<!--', '<![CDATA[',//可能需要回溯判断的 token 们
@@ -13,8 +13,8 @@
 
 
     function XMLParser(){
-        this._interpreter = new imatlas.Interpreter(TOKEN_TABLE);
-        this._attrpreter = new imatlas.Interpreter(TOKEN_TABLE);
+        this._interpreter = new z.parser.Interpreter(TOKEN_TABLE);
+        this._attrpreter = new z.parser.Interpreter(TOKEN_TABLE);
     }
 
 
@@ -30,7 +30,7 @@
             var attrpreter = this._attrpreter;
             preter.prepare(xmlText);
             var token,
-                doc = new imatlas.Document(),
+                doc = new z.parser.Document(),
                 currentNode = doc,
                 mode = 'element',
                 buffer = '',
@@ -39,7 +39,7 @@
                 switch(token){
                     case '<': //element start
                         str = preter.eat();
-                        var element = new imatlas.Element(str);
+                        var element = new z.parser.Element(str);
                         currentNode.appendChild(element);
                         str = preter.eatUntil(['>', '/>']);
                         var ch = preter.eat();//把 > 或 /> 吞掉
@@ -54,15 +54,15 @@
                             while((ch = attrpreter.eat()) !== null){
                                 if(ch === ' '){//attr start
                                     attr = attrpreter.eatUntil(['=', ' ']);
-                                    if(attr === null){
+                                    if(attr === null || !attr.trim().length){
                                         break;
                                     }
-                                    split = attrpreter.eatNotMove();//看看下一个字符是什么
+                                    split = attrpreter.eat();//看看下一个字符是什么
                                     if(split === ' '){//该属性没有值的
 
                                     }else if(split === '='){
-                                        attrpreter.eat();//跳过=
-                                        split = attrpreter.eatUntil(['"', "'"]);
+                                        split = attrpreter.eatUntil(['"', "'"]);//跳过可能的空格
+                                        split = attrpreter.eat();
                                         value = attrpreter.eatUntil(split);
                                         attrpreter.eat();//跳过最后一个结束符
                                     }
@@ -93,20 +93,20 @@
                     case '<!--'://注释开始
                         str = preter.eatUntil('-->');
                         preter.eat();
-                        var comment = new imatlas.Comment(str);
+                        var comment = new z.parser.Comment(str);
                         currentNode.appendChild(comment);
                         buffer = '';
                         break;
                     case '<![CDATA[':
                         str = preter.eatUntil(']]>');
                         preter.eat();
-                        var cdata = new imatlas.CDATA(str);
+                        var cdata = new z.parser.CDATA(str);
                         currentNode.appendChild(CDATA);
                         buffer = '';
                         break;
                     case '<?':
                         str = preter.eat();
-                        var metaNode = new imatlas.XMLMetaNode(str);
+                        var metaNode = new z.parser.XMLMetaNode(str);
                         currentNode.appendChild(metaNode);
                         str = preter.eatUntil('?>');
                         if(str !== null){
@@ -117,7 +117,7 @@
                         break;
                     case '<!':
                         str = preter.eat();
-                        var docType = new imatlas.DocumentType(str);
+                        var docType = new z.parser.DocumentType(str);
                         currentNode.appendChild(docType);
                         str = preter.eatUntil('>');
                         if(str !== null){
@@ -133,7 +133,7 @@
                             str = buffer + (str || '');
                             if(str.trim().length){
                                 //前面的都是文本节点
-                                var textNode = new imatlas.Text(str);
+                                var textNode = new z.parser.Text(str);
                                 currentNode.appendChild(textNode);
                             }
                         }
