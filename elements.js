@@ -257,13 +257,6 @@
             this.nodeName = 'document';
             this.nodeType = Node.DOCUMENT_NODE;
         },
-        toObject: function(){
-            var obj = {
-                nodeName: this.nodeName,
-                nodeValue: this.nodeValue
-            };
-            return obj;
-        },
         toXMLString: function(){
             var str = '';
             if(this.childNodes.length){

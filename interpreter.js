@@ -136,13 +136,6 @@
             }
             this.pos = pos;
             return first;
-        },
-
-        eatNotMove: function(){
-            var pos = this.pos;
-            var token = this.eatUntil();
-            this.pos = pos;
-            return token;
         }
     };
 
