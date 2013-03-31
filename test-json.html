@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Test</title>
+</head>
+<body>
+<textarea id="xmlText" style="width: 520px; height: 60px;">
+{"nodeType":9,"nodeName":"document","attributes":{},"childNodes":[{"nodeName":"xml","nodeType":10,"nodeValue":"version=\"1.0\""},{"nodeName":"DOCTYPE","nodeType":10,"nodeValue":"html"},{"nodeType":1,"nodeName":"head","attributes":{},"childNodes":[{"nodeType":1,"nodeName":"meta","attributes":{"http-equiv":"content-type","content":"text/html; charset=utf-8"},"childNodes":[],"tagName":"meta"},{"nodeType":1,"nodeName":"title","attributes":{},"childNodes":[{"nodeType":3,"nodeValue":"Test"}],"tagName":"title"}],"tagName":"head"},{"nodeType":8,"nodeValue":"  <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />\n    <title>Test</title>"}]}
+</textarea> 
+
+<button id="action">do parse</button>
+<div id="result"></div>
+<script src="ztool.mini.js"></script>
+<script src="interpreter.js"></script>
+<script src="jsonparser.js"></script>
+<script>
+Z.$package(function(z){
+    var txt = document.getElementById('xmlText');
+    var btn = document.getElementById('action');
+    var parser = new z.parser.JSONParser();
+    
+    btn.onclick = function(){
+        ret = parser.parse(txt.value);
+        console.log(ret);
+     }
+
+});
+</script>
+</body>
+</html>
