@@ -69,11 +69,17 @@
             this.length = text.length;
             this.pos = 0;
         },
-
+        /**
+         * 获取当前处理进度
+         * @return {Number} 
+         */
         getProgress: function(){
             return this.pos;
         },
-
+        /**
+         * 把文本按照tokenArray进行切割，按顺序返回一个字符或字串
+         * @return {{String}|null} 返回字符或字串，如果已经到结尾，则返回null
+         */
         eat: function(){
             var ch, m, 
                 text, 
@@ -115,27 +121,25 @@
             }
             return null;
         },
-        
+        /**
+         * 把指定until之前的字符都返回，until可以是字符串或者字符串数组，
+         * 但都必须是tokenArray的子集，否则忽略掉
+         * @param  {{String}|{Array}} until 限定用的token
+         * @return {String} 返回指定字符串，当在until之前都没有字符时，返回空串''
+         */
         eatUntil: function(until){
             if(until && !isArray(until)){
                 until = [until];
             }
             var pos = this.pos,
-                first = this.eat(),
-                secend
-                ;
-            if(this.isToken(first, until)){
-                this.pos = pos;
-                // return first;
-                return '';
-            }
-            pos = this.pos;
-            while((secend = this.eat()) !== null && !this.isToken(secend, until)){
-                first += secend;
+                result = '',
+                food;
+            while((food = this.eat()) !== null && !this.isToken(food, until)){
+                result += food;
                 pos = this.pos;
             }
             this.pos = pos;
-            return first;
+            return result;
         }
     };
 
