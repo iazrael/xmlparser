@@ -17,19 +17,31 @@
         if(token === null){
             throw new Error('not json');
         }
-        preter.eat();
+        preter.eat();//吞掉｛
         handleProperties(result, preter);
         return result;
     };
 
     function handleProperties(obj, preter){
-        var token, str, prop, value, tmpObj;
-        while((token = preter.eatUntil(['}', '"'])) !== null){
+        var token, str, prop, value, tmpObj, propState;
+        while((token = preter.eatUntil(['}', '"', ':'])) !== null){
+            propState = false;
             str = preter.eat();
-            if(str === '"'){//property start
+            if(str === '}'){//obj结束了
+                return;
+            }
+            if(str === '"'){
+                //property start
                 prop = preter.eatUntil(str);
-                preter.eatUntil(':');
+                preter.eatUntil(':');//吞掉属性后面的引号和空白
                 preter.eat();//吞掉：
+                propState = true;
+            }
+            if(str === ':'){
+                prop = token.trim();
+                propState = true;
+            }
+            if(propState){
                 token = preter.eatUntil([',', '{', '}', '[']);
                 str = preter.eat();//吞掉，或｝｛
                 if(str === ','){
@@ -58,10 +70,7 @@
                         }
                     }
                 }
-            }else if(str === '}'){
-                //obj结束了
-                return;
-            }
+            }//end propState
         }
     }
 
