@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="iTally" default="clean" basedir="./">
+	
+	<description>zTool</description>
+	
+    <property name="src" location="${basedir}"/>
+	<property name="build" location="${basedir}"/>
+	<property name="lib" location="${basedir}/lib"/>
+    
+	<property name="charset" value="utf-8"/>
+    
+    <target name="init">
+    </target>
+
+    <target name="concat" depends="init">
+        <concat destfile="${build}/xmlparser.all.js" encoding="${charset}" outputencoding="${charset}">
+            <path path="${src}/interpreter.js" />
+            <path path="${src}/elements.js" />
+            <path path="${src}/xmlparser.js" />
+        </concat>
+
+        <concat destfile="${build}/jsonparser.all.js" encoding="${charset}" outputencoding="${charset}">
+            <path path="${src}/interpreter.js" />
+            <path path="${src}/jsonparser.js" />
+        </concat>
+
+    </target>
+
+    <target name="clean" depends="concat">
+        
+	</target>
+</project>

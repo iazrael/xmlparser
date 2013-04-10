@@ -17,9 +17,7 @@
 <button id="action">do parse</button>
 <div id="result"></div>
 <script src="ztool.mini.js"></script>
-<script src="interpreter.js"></script>
-<script src="elements.js"></script>
-<script src="xmlparser.js"></script>
+<script src="xmlparser.all.js"></script>
 <script>
 Z.$package(function(z){
     var txt = document.getElementById('xmlText');
@@ -29,7 +27,7 @@ Z.$package(function(z){
     btn.onclick = function(){
         ret = xmlparser.parse(txt.value);
         console.log(ret.toXMLString());
-     }
+    }
 
 });
 </script>
