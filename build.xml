@@ -3,8 +3,8 @@
 	
 	<description>zTool</description>
 	
-    <property name="src" location="${basedir}"/>
-	<property name="build" location="${basedir}"/>
+    <property name="src" location="${basedir}/src"/>
+	<property name="build" location="${basedir}/build"/>
 	<property name="lib" location="${basedir}/lib"/>
     
 	<property name="charset" value="utf-8"/>
