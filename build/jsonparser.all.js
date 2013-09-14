@@ -163,6 +163,8 @@
         var token = preter.eatUntil('{');//找到第一个 ｛ ，作为json的开始
         if(token === null){
             throw new Error('not json');
+        }else if(token.trim()){
+            throw new Error('error json format');
         }
         preter.eat();//吞掉｛
         handleProperties(result, preter);
