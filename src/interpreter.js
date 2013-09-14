@@ -5,6 +5,8 @@
     var MATCH_EXACTLY = 1;//完全匹配了一个
     var MATCH_POLYSEMY = 2;//存在多个可能的匹配项
 
+    var CYCLE_BOUNDARY = 10;//pos 没有变化超过 10次, 就认为是陷入死循环了
+
     function isArray (obj){
         return Object.prototype.toString.call(obj) === '[object Array]';
     }
@@ -20,7 +22,8 @@
         /**
          * 判读一个字符或字符串是否是token, 严格匹配
          * @param  {String}  text 
-         * @param {Array} extra 
+         * @param {Array} extra 限定 text是token的同时, 也属于该指定数组
+         * 
          * @return {Boolean}
          */
         isToken: function(text, extra){
@@ -37,6 +40,7 @@
          * 2: 匹配了多个开头, 返回 MATCH_POLYSEMY
          * 3: 未有匹配, 返回 MATCH_NONE
          * @param  {String}  text 
+         * 
          * @return {Number}
          */
         checkToken: function(text){
@@ -55,9 +59,11 @@
             if(!count){//0
                 return MATCH_NONE;
             }
+            //=1
             if(this.isToken(text)){
                 return MATCH_EXACTLY;
             }
+            //例如 text='<!', 但token 中有 <!, <!-- 等
             return MATCH_POLYSEMY;
         },
         /**
@@ -68,16 +74,11 @@
             this.text = text;
             this.length = text.length;
             this.pos = 0;
-        },
-        /**
-         * 获取当前处理进度
-         * @return {Number} 
-         */
-        getProgress: function(){
-            return this.pos;
+            this.cycling = 0;
         },
         /**
          * 把文本按照tokenArray进行切割，按顺序返回一个字符或字串
+         * 
          * @return {{String}|null} 返回字符或字串，如果已经到结尾，则返回null
          */
         eat: function(){
@@ -125,9 +126,15 @@
          * 把指定until之前的字符都返回，until可以是字符串或者字符串数组，
          * 但都必须是tokenArray的子集，否则忽略掉
          * @param  {{String}|{Array}} until 限定用的token
+         * 
          * @return {String} 返回指定字符串，当在until之前都没有字符时，返回空串''
+         *
+         * @exception CyclingError 当监测到连续多次, 字符的处理进度都没变化时, 抛出该异常
          */
         eatUntil: function(until){
+            if(this.cycling >= CYCLE_BOUNDARY){
+                throw new Error('CyclingError: do you run eatUntil in a empty loop?');
+            }
             if(until && !isArray(until)){
                 until = [until];
             }
@@ -137,6 +144,9 @@
             while((food = this.eat()) !== null && !this.isToken(food, until)){
                 result += food;
                 pos = this.pos;
+            }
+            if(this.pos === pos){
+                this.cycling++;
             }
             this.pos = pos;
             return result;
