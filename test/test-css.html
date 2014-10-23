@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Test</title>
+</head>
+<body>
+<textarea id="xmlText" style="width: 520px; height: 160px;">
+
+div:nth-of-type(9){
+    width: 79px;
+    background: url(../images/gray-star.png);/*** @tag:ignore **/
+    height: 18px;
+}
+.clock{
+    width: 540px;
+    height: 540px;
+    border-radius: 540px;-moz-border-radius: 540px;
+    background: #000;
+    box-sizing: border-box;-moz-box-sizing: border-box;
+    padding: 45px;
+    position: relative;
+    box-shadow: #333 0 10px 15px, #999 0 5px 10px inset;-moz-box-shadow: #333 0 10px 15px, #999 0 5px 10px inset;
+    margin: 20px;
+}
+.clock-dial span:nth-child(10):after{    -webkit-transform: rotate(-60deg);-moz-transform: rotate(-60deg);}
+
+</textarea> 
+
+<button id="action">do parse</button>
+<div id="result"></div>
+<script src="../src/ztool.mini.js"></script>
+<script src="../src/interpreter.js"></script>
+<script src="../src/cssparser.js"></script>
+<script>
+Z.$package(function(z){
+    var txt = document.getElementById('xmlText');
+    var btn = document.getElementById('action');
+    var parser = new z.parser.CSSParser();
+    
+    btn.onclick = function(){
+        ret = parser.parse(txt.value);
+        console.log(ret);
+        console.log(ret.cssRules[0]);
+     }
+
+});
+</script>
+</body>
+</html>
