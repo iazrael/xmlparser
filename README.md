@@ -8,8 +8,9 @@ XML需要严格的模式，解析HTML会有问题
 
 反正我是一不小心的蛋疼，就把JSON的也写了，诶～
 
-###使用方法###
-    var Z = require('./ztool.mini.js');
+使用方法
+---
+    var Z = require('./ztool.mini.js');
     require('./xmlparser.all.js');
     var xmlText = '<?xml version="1.0"?> <!DOCTYPE html> <head>\
         <meta http-equiv="content-type" content="text/html; charset=utf-8" />\
@@ -20,7 +21,8 @@ XML需要严格的模式，解析HTML会有问题
     var parser = new Z.parser.XMLParser();
     var xmlDoc = parser.parse(xmlText);
 
-###JSON###
+JSON
+---
 
     var Z = require('./ztool.mini.js');
     require('./jsonparser.all.js');
